@@ -9,9 +9,7 @@ const index = require('./index');
 //创建服务器监听端口
 const server = http.createServer(handleRequest);
 server.listen(8088);
-server.on('error', function(err) {
-    console.log(123, err)
-})
+
 console.log('server start at 8088 port')
 
 function handleRequest(req, res) {
