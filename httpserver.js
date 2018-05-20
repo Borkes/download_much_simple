@@ -41,10 +41,10 @@ function resIndex(res) {
         let expires = new Date();
         expires.setTime(expires.getTime() + 1000 * 1000);
         res.writeHead(200, {
-            "Content-Type": "text/html", 
+            "Content-Type": "text/html",
             "content-encoding": "gzip",
             "Expires": expires.toUTCString(),
-            "Cache-Control": "max-age=3000", 
+            "Cache-Control": "max-age=3000",
         });
         const inStream = new Readable();
         inStream.push(index(pictures));
@@ -57,9 +57,18 @@ function resIndex(res) {
 
 //处理显示图片
 function resImage(req, res) {
-    var readPath = __dirname + req.url;
-    res.writeHead(200, {"Content-Type": "image/jpg"})
-    fs.createReadStream(readPath).pipe(res);
+    let readPath = __dirname + req.url;
+    fs.exists(readPath, function (exists) {
+        if (!exists) {
+            res.writeHead(404, {
+                'Content-Type': 'text/plain'
+            });
+            res.end();
+        } else {
+            res.writeHead(200, { "Content-Type": "image/jpg" });
+            fs.createReadStream(readPath).pipe(res);
+        }
+    })
 }
 
 //下载
@@ -91,6 +100,8 @@ function download(req, res) {
     zipProc.stdout.pipe(res)
     zipProc.stderr.on('data', function (data) {
         console.log(data.toString())
+        res.writeHead(404, {'Content-Type': 'text/plain'})
+        res.end();
     })
     zipProc.on('close', function (code) {
         console.log(code)
