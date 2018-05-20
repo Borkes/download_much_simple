@@ -2,6 +2,8 @@ const http = require('http');
 const url = require('url');
 const fs = require('fs');
 const path = require('path');
+const zlib = require('zlib');
+const { Readable } = require('stream');
 const querystring = require('querystring');
 const { exec, spawn } = require('child_process');
 const index = require('./index');
@@ -36,21 +38,28 @@ function resIndex(res) {
         let pictures = files.map(file => {
             return '/dist/' + file;
         })
-        res.writeHead(200, { "Content-Type": "text/html" });
-        res.end(index(pictures)); //传递基于dist目录的图片数组
+        let expires = new Date();
+        expires.setTime(expires.getTime() + 1000 * 1000);
+        res.writeHead(200, {
+            "Content-Type": "text/html", 
+            "content-encoding": "gzip",
+            "Expires": expires.toUTCString(),
+            "Cache-Control": "max-age=3000", 
+        });
+        const inStream = new Readable();
+        inStream.push(index(pictures));
+        inStream.push(null); // 没有更多数据了
+        inStream.pipe(zlib.createGzip()).pipe(res);
+        //res.writeHead(200, { "Content-Type": "text/html" });
+        //res.end(index(pictures)); //传递基于dist目录的图片数组
     })
 }
 
 //处理显示图片
 function resImage(req, res) {
     var readPath = __dirname + req.url;
-    fs.readFile(readPath, (err, indexPage) => {
-        if (err) {
-            return res.end('error');
-        }
-        res.writeHead(200, { "Content-Type": "image/jpg" });
-        res.end(indexPage);
-    });
+    res.writeHead(200, {"Content-Type": "image/jpg"})
+    fs.createReadStream(readPath).pipe(res);
 }
 
 //下载
